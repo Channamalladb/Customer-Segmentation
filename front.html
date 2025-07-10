@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Customer Segmentation Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 900px; margin-left: auto; margin-right: auto; height: 400px; max-height: 50vh; }
+        @media (max-width: 768px) { .chart-container { height: 350px; } }
+        .stat-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #0d9488; animation: spin 1s ease infinite; }
+        html.dark .spinner { border-left-color: #2dd4bf; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-300">
+
+    <header class="bg-white dark:bg-slate-800/50 backdrop-blur-sm shadow-md sticky top-0 z-20 border-b border-slate-200 dark:border-slate-700">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Interactive Customer Segmentation Report</h1>
+                <p class="text-slate-600 dark:text-slate-400 mt-1">An analysis of mall customer data to identify distinct segments and inform marketing strategy.</p>
+            </div>
+            <button id="theme-toggle" class="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-slate-900">
+                <svg id="theme-icon-light" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg id="theme-icon-dark" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6">
+        
+        <section id="overview" class="mb-12">
+            <h2 class="text-2xl font-bold mb-2 text-slate-900 dark:text-white">1. Customer Base Overview</h2>
+            <p class="text-slate-600 dark:text-slate-400 mb-6 max-w-3xl">This section provides a high-level summary of the 200 customers in our dataset. The charts below illustrate the demographic composition, including the distribution by gender and the spread across different age groups. Interact with the charts by hovering over the segments to see precise figures.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md text-center">
+                    <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Total Customers</h3>
+                    <p id="total-customers" class="text-4xl font-bold text-teal-600 dark:text-teal-400 mt-2">200</p>
+                </div>
+                <div class="stat-card bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md text-center">
+                    <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Avg. Age</h3>
+                    <p id="avg-age" class="text-4xl font-bold text-teal-600 dark:text-teal-400 mt-2">0</p>
+                </div>
+                <div class="stat-card bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md text-center">
+                    <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Avg. Income (k$)</h3>
+                    <p id="avg-income" class="text-4xl font-bold text-teal-600 dark:text-teal-400 mt-2">0</p>
+                </div>
+                <div class="stat-card bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md text-center">
+                    <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Avg. Score</h3>
+                    <p id="avg-score" class="text-4xl font-bold text-teal-600 dark:text-teal-400 mt-2">0</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-4 text-center text-slate-900 dark:text-white">Gender Distribution</h3>
+                    <div class="chart-container" style="height: 300px; max-height: 40vh;">
+                        <canvas id="gender-chart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-4 text-center text-slate-900 dark:text-white">Age Distribution</h3>
+                    <div class="chart-container" style="height: 300px; max-height: 40vh;">
+                        <canvas id="age-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <hr class="my-12 border-slate-200 dark:border-slate-700">
+
+        <section id="analysis" class="mb-12">
+            <h2 class="text-2xl font-bold mb-2 text-slate-900 dark:text-white">2. Segmentation Analysis Lab</h2>
+            <p class="text-slate-600 dark:text-slate-400 mb-6 max-w-3xl">Here you can perform a K-Means clustering analysis to group customers into distinct segments. Select the desired number of segments (from 2 to 7) and click "Run Analysis". The scatter plot visualizes these segments based on their annual income and spending score, while the bar chart compares the average characteristics of each identified group.</p>
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-8">
+                <div class="flex flex-col md:flex-row items-center gap-4">
+                    <label for="k-clusters" class="font-semibold text-slate-700 dark:text-slate-300">Number of Segments (k):</label>
+                    <input type="number" id="k-clusters" value="5" min="2" max="7" class="w-24 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                    <button id="run-cluster-btn" class="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Run Analysis</button>
+                </div>
+            </div>
+            <div id="analysis-results" class="hidden">
+                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                         <h3 class="text-lg font-semibold mb-4 text-center text-slate-900 dark:text-white">Customer Segments</h3>
+                         <div class="chart-container">
+                             <canvas id="cluster-chart"></canvas>
+                         </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+                         <h3 class="text-lg font-semibold mb-4 text-center text-slate-900 dark:text-white">Cluster Profiles</h3>
+                         <div class="chart-container">
+                             <canvas id="profile-chart"></canvas>
+                         </div>
+                    </div>
+                 </div>
+            </div>
+             <div id="analysis-placeholder" class="text-center py-16 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+                <p class="text-slate-500 dark:text-slate-400">Run the analysis to view segmentation results.</p>
+            </div>
+        </section>
+
+        <hr class="my-12 border-slate-200 dark:border-slate-700">
+        
+        <section id="strategy" class="mb-12">
+            <h2 class="text-2xl font-bold mb-2 text-slate-900 dark:text-white">3. Strategic Insights</h2>
+            <p class="text-slate-600 dark:text-slate-400 mb-6 max-w-3xl">After running the analysis, select a customer segment from the dropdown menu to reveal its corresponding persona and a recommended marketing strategy. This section translates the data-driven segments into actionable business intelligence.</p>
+            <div id="strategy-controls" class="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md hidden">
+                 <div class="flex flex-col md:flex-row items-center gap-4">
+                     <label for="cluster-select" class="font-semibold text-slate-700 dark:text-slate-300">Select Segment for Strategy:</label>
+                     <select id="cluster-select" class="w-full md:w-64 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"></select>
+                     <button id="generate-strategy-btn" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 flex items-center justify-center gap-2">
+                        Show Marketing Strategy
+                     </button>
+                 </div>
+                 <div id="strategy-output" class="mt-6 p-6 bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-500 dark:border-indigo-400 rounded-r-lg hidden">
+                 </div>
+            </div>
+             <div id="strategy-placeholder" class="text-center py-16 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+                <p class="text-slate-500 dark:text-slate-400">Run the analysis to generate strategic insights.</p>
+            </div>
+        </section>
+
+        <hr class="my-12 border-slate-200 dark:border-slate-700">
+
+        <section id="data-explorer">
+            <h2 class="text-2xl font-bold mb-2 text-slate-900 dark:text-white">4. Data Explorer</h2>
+            <p class="text-slate-600 dark:text-slate-400 mb-6 max-w-3xl">For a deeper dive, this table contains the complete customer dataset. After running the analysis, the "Cluster" column will be populated. You can also generate a summary of the data.</p>
+            
+            <div class="my-6">
+                <button id="generate-summary-btn" class="w-full md:w-auto bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300 flex items-center justify-center gap-2">
+                    Show Data Summary
+                </button>
+                <div id="summary-output" class="mt-4 p-6 bg-sky-50 dark:bg-sky-900/20 border-l-4 border-sky-500 dark:border-sky-400 rounded-r-lg hidden">
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                        <thead class="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-100 dark:bg-slate-700">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">ID</th><th scope="col" class="px-6 py-3">Gender</th><th scope="col" class="px-6 py-3">Age</th><th scope="col" class="px-6 py-3">Income (k$)</th><th scope="col" class="px-6 py-3">Score (1-100)</th><th scope="col" class="px-6 py-3 text-center">Cluster</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-table-body">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination" class="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-700/50"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 mt-12 border-t border-slate-200 dark:border-slate-700">
+        <p class="text-slate-500 dark:text-slate-400 text-sm">Interactive Report</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const customerData = [ { "CustomerID": 1, "Gender": "Male", "Age": 19, "Annual Income (k$)": 15, "Spending Score (1-100)": 39 }, { "CustomerID": 2, "Gender": "Male", "Age": 21, "Annual Income (k$)": 15, "Spending Score (1-100)": 81 }, { "CustomerID": 3, "Gender": "Female", "Age": 20, "Annual Income (k$)": 16, "Spending Score (1-100)": 6 }, { "CustomerID": 4, "Gender": "Female", "Age": 23, "Annual Income (k$)": 16, "Spending Score (1-100)": 77 }, { "CustomerID": 5, "Gender": "Female", "Age": 31, "Annual Income (k$)": 17, "Spending Score (1-100)": 40 }, { "CustomerID": 6, "Gender": "Female", "Age": 22, "Annual Income (k$)": 17, "Spending Score (1-100)": 76 }, { "CustomerID": 7, "Gender": "Female", "Age": 35, "Annual Income (k$)": 18, "Spending Score (1-100)": 6 }, { "CustomerID": 8, "Gender": "Female", "Age": 23, "Annual Income (k$)": 18, "Spending Score (1-100)": 94 }, { "CustomerID": 9, "Gender": "Male", "Age": 64, "Annual Income (k$)": 19, "Spending Score (1-100)": 3 }, { "CustomerID": 10, "Gender": "Female", "Age": 30, "Annual Income (k$)": 19, "Spending Score (1-100)": 72 }, { "CustomerID": 11, "Gender": "Male", "Age": 67, "Annual Income (k$)": 19, "Spending Score (1-100)": 14 }, { "CustomerID": 12, "Gender": "Female", "Age": 35, "Annual Income (k$)": 19, "Spending Score (1-100)": 99 }, { "CustomerID": 13, "Gender": "Female", "Age": 58, "Annual Income (k$)": 20, "Spending Score (1-100)": 15 }, { "CustomerID": 14, "Gender": "Female", "Age": 24, "Annual Income (k$)": 20, "Spending Score (1-100)": 77 }, { "CustomerID": 15, "Gender": "Male", "Age": 37, "Annual Income (k$)": 20, "Spending Score (1-100)": 13 }, { "CustomerID": 16, "Gender": "Male", "Age": 22, "Annual Income (k$)": 20, "Spending Score (1-100)": 79 }, { "CustomerID": 17, "Gender": "Female", "Age": 35, "Annual Income (k$)": 21, "Spending Score (1-100)": 35 }, { "CustomerID": 18, "Gender": "Male", "Age": 20, "Annual Income (k$)": 21, "Spending Score (1-100)": 66 }, { "CustomerID": 19, "Gender": "Male", "Age": 52, "Annual Income (k$)": 23, "Spending Score (1-100)": 29 }, { "CustomerID": 20, "Gender": "Female", "Age": 35, "Annual Income (k$)": 23, "Spending Score (1-100)": 98 }];
+            let allCustomers = customerData.concat([ { "CustomerID": 21, "Gender": "Male", "Age": 35, "Annual Income (k$)": 24, "Spending Score (1-100)": 35 }, { "CustomerID": 22, "Gender": "Male", "Age": 25, "Annual Income (k$)": 24, "Spending Score (1-100)": 73 }, { "CustomerID": 23, "Gender": "Female", "Age": 46, "Annual Income (k$)": 25, "Spending Score (1-100)": 5 }, { "CustomerID": 24, "Gender": "Male", "Age": 31, "Annual Income (k$)": 25, "Spending Score (1-100)": 73 }, { "CustomerID": 25, "Gender": "Female", "Age": 54, "Annual Income (k$)": 28, "Spending Score (1-100)": 14 }, { "CustomerID": 26, "Gender": "Male", "Age": 29, "Annual Income (k$)": 28, "Spending Score (1-100)": 82 }, { "CustomerID": 27, "Gender": "Female", "Age": 45, "Annual Income (k$)": 28, "Spending Score (1-100)": 32 }, { "CustomerID": 28, "Gender": "Male", "Age": 35, "Annual Income (k$)": 28, "Spending Score (1-100)": 61 }, { "CustomerID": 29, "Gender": "Female", "Age": 40, "Annual Income (k$)": 29, "Spending Score (1-100)": 31 }, { "CustomerID": 30, "Gender": "Female", "Age": 23, "Annual Income (k$)": 29, "Spending Score (1-100)": 87 }, { "CustomerID": 31, "Gender": "Male", "Age": 60, "Annual Income (k$)": 30, "Spending Score (1-100)": 4 }, { "CustomerID": 32, "Gender": "Female", "Age": 21, "Annual Income (k$)": 30, "Spending Score (1-100)": 73 }, { "CustomerID": 33, "Gender": "Male", "Age": 53, "Annual Income (k$)": 33, "Spending Score (1-100)": 4 }, { "CustomerID": 34, "Gender": "Male", "Age": 18, "Annual Income (k$)": 33, "Spending Score (1-100)": 92 }, { "CustomerID": 35, "Gender": "Female", "Age": 49, "Annual Income (k$)": 33, "Spending Score (1-100)": 14 }, { "CustomerID": 36, "Gender": "Female", "Age": 21, "Annual Income (k$)": 33, "Spending Score (1-100)": 81 }, { "CustomerID": 37, "Gender": "Female", "Age": 42, "Annual Income (k$)": 34, "Spending Score (1-100)": 17 }, { "CustomerID": 38, "Gender": "Female", "Age": 30, "Annual Income (k$)": 34, "Spending Score (1-100)": 73 }, { "CustomerID": 39, "Gender": "Female", "Age": 36, "Annual Income (k$)": 37, "Spending Score (1-100)": 26 }, { "CustomerID": 40, "Gender": "Female", "Age": 20, "Annual Income (k$)": 37, "Spending Score (1-100)": 75 }, { "CustomerID": 41, "Gender": "Female", "Age": 65, "Annual Income (k$)": 38, "Spending Score (1-100)": 35 }, { "CustomerID": 42, "Gender": "Male", "Age": 24, "Annual Income (k$)": 38, "Spending Score (1-100)": 92 }, { "CustomerID": 43, "Gender": "Male", "Age": 48, "Annual Income (k$)": 39, "Spending Score (1-100)": 36 }, { "CustomerID": 44, "Gender": "Female", "Age": 31, "Annual Income (k$)": 39, "Spending Score (1-100)": 61 }, { "CustomerID": 45, "Gender": "Female", "Age": 49, "Annual Income (k$)": 39, "Spending Score (1-100)": 28 }, { "CustomerID": 46, "Gender": "Female", "Age": 24, "Annual Income (k$)": 39, "Spending Score (1-100)": 65 }, { "CustomerID": 47, "Gender": "Female", "Age": 50, "Annual Income (k$)": 40, "Spending Score (1-100)": 55 }, { "CustomerID": 48, "Gender": "Female", "Age": 27, "Annual Income (k$)": 40, "Spending Score (1-100)": 47 }, { "CustomerID": 49, "Gender": "Female", "Age": 29, "Annual Income (k$)": 40, "Spending Score (1-100)": 42 }, { "CustomerID": 50, "Gender": "Female", "Age": 31, "Annual Income (k$)": 40, "Spending Score (1-100)": 42 }, { "CustomerID": 51, "Gender": "Female", "Age": 49, "Annual Income (k$)": 42, "Spending Score (1-100)": 52 }, { "CustomerID": 52, "Gender": "Male", "Age": 33, "Annual Income (k$)": 42, "Spending Score (1-100)": 60 }, { "CustomerID": 53, "Gender": "Female", "Age": 31, "Annual Income (k$)": 43, "Spending Score (1-100)": 54 }, { "CustomerID": 54, "Gender": "Male", "Age": 59, "Annual Income (k$)": 43, "Spending Score (1-100)": 60 }, { "CustomerID": 55, "Gender": "Female", "Age": 50, "Annual Income (k$)": 43, "Spending Score (1-100)": 45 }, { "CustomerID": 56, "Gender": "Male", "Age": 47, "Annual Income (k$)": 43, "Spending Score (1-100)": 41 }, { "CustomerID": 57, "Gender": "Female", "Age": 51, "Annual Income (k$)": 44, "Spending Score (1-100)": 50 }, { "CustomerID": 58, "Gender": "Male", "Age": 69, "Annual Income (k$)": 44, "Spending Score (1-100)": 46 }, { "CustomerID": 59, "Gender": "Female", "Age": 27, "Annual Income (k$)": 46, "Spending Score (1-100)": 51 }, { "CustomerID": 60, "Gender": "Male", "Age": 53, "Annual Income (k$)": 46, "Spending Score (1-100)": 46 }, { "CustomerID": 61, "Gender": "Male", "Age": 70, "Annual Income (k$)": 46, "Spending Score (1-100)": 56 }, { "CustomerID": 62, "Gender": "Male", "Age": 19, "Annual Income (k$)": 46, "Spending Score (1-100)": 55 }, { "CustomerID": 63, "Gender": "Female", "Age": 67, "Annual Income (k$)": 47, "Spending Score (1-100)": 52 }, { "CustomerID": 64, "Gender": "Female", "Age": 54, "Annual Income (k$)": 47, "Spending Score (1-100)": 59 }, { "CustomerID": 65, "Gender": "Male", "Age": 63, "Annual Income (k$)": 48, "Spending Score (1-100)": 51 }, { "CustomerID": 66, "Gender": "Male", "Age": 18, "Annual Income (k$)": 48, "Spending Score (1-100)": 59 }, { "CustomerID": 67, "Gender": "Female", "Age": 43, "Annual Income (k$)": 48, "Spending Score (1-100)": 50 }, { "CustomerID": 68, "Gender": "Female", "Age": 68, "Annual Income (k$)": 48, "Spending Score (1-100)": 48 }, { "CustomerID": 69, "Gender": "Male", "Age": 19, "Annual Income (k$)": 48, "Spending Score (1-100)": 59 }, { "CustomerID": 70, "Gender": "Female", "Age": 32, "Annual Income (k$)": 48, "Spending Score (1-100)": 47 }, { "CustomerID": 71, "Gender": "Male", "Age": 70, "Annual Income (k$)": 49, "Spending Score (1-100)": 55 }, { "CustomerID": 72, "Gender": "Female", "Age": 47, "Annual Income (k$)": 49, "Spending Score (1-100)": 42 }, { "CustomerID": 73, "Gender": "Female", "Age": 60, "Annual Income (k$)": 50, "Spending Score (1-100)": 49 }, { "CustomerID": 74, "Gender": "Female", "Age": 60, "Annual Income (k$)": 50, "Spending Score (1-100)": 56 }, { "CustomerID": 75, "Gender": "Male", "Age": 59, "Annual Income (k$)": 54, "Spending Score (1-100)": 47 }, { "CustomerID": 76, "Gender": "Male", "Age": 26, "Annual Income (k$)": 54, "Spending Score (1-100)": 54 }, { "CustomerID": 77, "Gender": "Female", "Age": 45, "Annual Income (k$)": 54, "Spending Score (1-100)": 53 }, { "CustomerID": 78, "Gender": "Male", "Age": 40, "Annual Income (k$)": 54, "Spending Score (1-100)": 48 }, { "CustomerID": 79, "Gender": "Female", "Age": 23, "Annual Income (k$)": 54, "Spending Score (1-100)": 52 }, { "CustomerID": 80, "Gender": "Female", "Age": 49, "Annual Income (k$)": 54, "Spending Score (1-100)": 42 }, { "CustomerID": 81, "Gender": "Male", "Age": 57, "Annual Income (k$)": 54, "Spending Score (1-100)": 51 }, { "CustomerID": 82, "Gender": "Male", "Age": 38, "Annual Income (k$)": 54, "Spending Score (1-100)": 55 }, { "CustomerID": 83, "Gender": "Male", "Age": 67, "Annual Income (k$)": 54, "Spending Score (1-100)": 41 }, { "CustomerID": 84, "Gender": "Female", "Age": 46, "Annual Income (k$)": 54, "Spending Score (1-100)": 44 }, { "CustomerID": 85, "Gender": "Female", "Age": 21, "Annual Income (k$)": 54, "Spending Score (1-100)": 57 }, { "CustomerID": 86, "Gender": "Male", "Age": 48, "Annual Income (k$)": 54, "Spending Score (1-100)": 46 }, { "CustomerID": 87, "Gender": "Female", "Age": 55, "Annual Income (k$)": 57, "Spending Score (1-100)": 58 }, { "CustomerID": 88, "Gender": "Female", "Age": 22, "Annual Income (k$)": 57, "Spending Score (1-100)": 55 }, { "CustomerID": 89, "Gender": "Female", "Age": 34, "Annual Income (k$)": 58, "Spending Score (1-100)": 60 }, { "CustomerID": 90, "Gender": "Female", "Age": 50, "Annual Income (k$)": 58, "Spending Score (1-100)": 46 }, { "CustomerID": 91, "Gender": "Female", "Age": 68, "Annual Income (k$)": 59, "Spending Score (1-100)": 55 }, { "CustomerID": 92, "Gender": "Male", "Age": 18, "Annual Income (k$)": 59, "Spending Score (1-100)": 41 }, { "CustomerID": 93, "Gender": "Male", "Age": 48, "Annual Income (k$)": 60, "Spending Score (1-100)": 49 }, { "CustomerID": 94, "Gender": "Female", "Age": 40, "Annual Income (k$)": 60, "Spending Score (1-100)": 40 }, { "CustomerID": 95, "Gender": "Female", "Age": 32, "Annual Income (k$)": 60, "Spending Score (1-100)": 42 }, { "CustomerID": 96, "Gender": "Male", "Age": 24, "Annual Income (k$)": 60, "Spending Score (1-100)": 52 }, { "CustomerID": 97, "Gender": "Female", "Age": 47, "Annual Income (k$)": 60, "Spending Score (1-100)": 47 }, { "CustomerID": 98, "Gender": "Female", "Age": 27, "Annual Income (k$)": 60, "Spending Score (1-100)": 50 }, { "CustomerID": 99, "Gender": "Male", "Age": 48, "Annual Income (k$)": 61, "Spending Score (1-100)": 42 }, { "CustomerID": 100, "Gender": "Male", "Age": 20, "Annual Income (k$)": 61, "Spending Score (1-100)": 49 }, { "CustomerID": 101, "Gender": "Female", "Age": 23, "Annual Income (k$)": 62, "Spending Score (1-100)": 41 }, { "CustomerID": 102, "Gender": "Female", "Age": 49, "Annual Income (k$)": 62, "Spending Score (1-100)": 48 }, { "CustomerID": 103, "Gender": "Male", "Age": 67, "Annual Income (k$)": 62, "Spending Score (1-100)": 59 }, { "CustomerID": 104, "Gender": "Male", "Age": 26, "Annual Income (k$)": 62, "Spending Score (1-100)": 55 }, { "CustomerID": 105, "Gender": "Male", "Age": 49, "Annual Income (k$)": 62, "Spending Score (1-100)": 56 }, { "CustomerID": 106, "Gender": "Female", "Age": 21, "Annual Income (k$)": 62, "Spending Score (1-100)": 42 }, { "CustomerID": 107, "Gender": "Female", "Age": 66, "Annual Income (k$)": 63, "Spending Score (1-100)": 50 }, { "CustomerID": 108, "Gender": "Male", "Age": 54, "Annual Income (k$)": 63, "Spending Score (1-100)": 46 }, { "CustomerID": 109, "Gender": "Male", "Age": 68, "Annual Income (k$)": 63, "Spending Score (1-100)": 43 }, { "CustomerID": 110, "Gender": "Male", "Age": 66, "Annual Income (k$)": 63, "Spending Score (1-100)": 48 }, { "CustomerID": 111, "Gender": "Male", "Age": 65, "Annual Income (k$)": 63, "Spending Score (1-100)": 52 }, { "CustomerID": 112, "Gender": "Female", "Age": 19, "Annual Income (k$)": 63, "Spending Score (1-100)": 54 }, { "CustomerID": 113, "Gender": "Female", "Age": 38, "Annual Income (k$)": 64, "Spending Score (1-100)": 42 }, { "CustomerID": 114, "Gender": "Male", "Age": 19, "Annual Income (k$)": 64, "Spending Score (1-100)": 46 }, { "CustomerID": 115, "Gender": "Female", "Age": 18, "Annual Income (k$)": 65, "Spending Score (1-100)": 48 }, { "CustomerID": 116, "Gender": "Female", "Age": 19, "Annual Income (k$)": 65, "Spending Score (1-100)": 50 }, { "CustomerID": 117, "Gender": "Female", "Age": 63, "Annual Income (k$)": 65, "Spending Score (1-100)": 43 }, { "CustomerID": 118, "Gender": "Female", "Age": 49, "Annual Income (k$)": 65, "Spending Score (1-100)": 59 }, { "CustomerID": 119, "Gender": "Female", "Age": 51, "Annual Income (k$)": 67, "Spending Score (1-100)": 43 }, { "CustomerID": 120, "Gender": "Female", "Age": 50, "Annual Income (k$)": 67, "Spending Score (1-100)": 57 }, { "CustomerID": 121, "Gender": "Male", "Age": 27, "Annual Income (k$)": 67, "Spending Score (1-100)": 56 }, { "CustomerID": 122, "Gender": "Female", "Age": 38, "Annual Income (k$)": 67, "Spending Score (1-100)": 40 }, { "CustomerID": 123, "Gender": "Female", "Age": 40, "Annual Income (k$)": 69, "Spending Score (1-100)": 58 }, { "CustomerID": 124, "Gender": "Male", "Age": 39, "Annual Income (k$)": 69, "Spending Score (1-100)": 91 }, { "CustomerID": 125, "Gender": "Female", "Age": 23, "Annual Income (k$)": 70, "Spending Score (1-100)": 29 }, { "CustomerID": 126, "Gender": "Female", "Age": 31, "Annual Income (k$)": 70, "Spending Score (1-100)": 77 }, { "CustomerID": 127, "Gender": "Male", "Age": 43, "Annual Income (k$)": 71, "Spending Score (1-100)": 35 }, { "CustomerID": 128, "Gender": "Male", "Age": 40, "Annual Income (k$)": 71, "Spending Score (1-100)": 95 }, { "CustomerID": 129, "Gender": "Male", "Age": 59, "Annual Income (k$)": 71, "Spending Score (1-100)": 11 }, { "CustomerID": 130, "Gender": "Male", "Age": 38, "Annual Income (k$)": 71, "Spending Score (1-100)": 75 }, { "CustomerID": 131, "Gender": "Male", "Age": 47, "Annual Income (k$)": 71, "Spending Score (1-100)": 9 }, { "CustomerID": 132, "Gender": "Male", "Age": 39, "Annual Income (k$)": 71, "Spending Score (1-100)": 75 }, { "CustomerID": 133, "Gender": "Female", "Age": 25, "Annual Income (k$)": 72, "Spending Score (1-100)": 34 }, { "CustomerID": 134, "Gender": "Female", "Age": 31, "Annual Income (k$)": 72, "Spending Score (1-100)": 71 }, { "CustomerID": 135, "Gender": "Male", "Age": 20, "Annual Income (k$)": 73, "Spending Score (1-100)": 5 }, { "CustomerID": 136, "Gender": "Female", "Age": 29, "Annual Income (k$)": 73, "Spending Score (1-100)": 88 }, { "CustomerID": 137, "Gender": "Female", "Age": 44, "Annual Income (k$)": 73, "Spending Score (1-100)": 7 }, { "CustomerID": 138, "Gender": "Male", "Age": 32, "Annual Income (k$)": 73, "Spending Score (1-100)": 73 }, { "CustomerID": 139, "Gender": "Male", "Age": 19, "Annual Income (k$)": 74, "Spending Score (1-100)": 10 }, { "CustomerID": 140, "Gender": "Female", "Age": 35, "Annual Income (k$)": 74, "Spending Score (1-100)": 72 }, { "CustomerID": 141, "Gender": "Female", "Age": 57, "Annual Income (k$)": 75, "Spending Score (1-100)": 5 }, { "CustomerID": 142, "Gender": "Male", "Age": 32, "Annual Income (k$)": 75, "Spending Score (1-100)": 93 }, { "CustomerID": 143, "Gender": "Female", "Age": 28, "Annual Income (k$)": 76, "Spending Score (1-100)": 40 }, { "CustomerID": 144, "Gender": "Female", "Age": 32, "Annual Income (k$)": 76, "Spending Score (1-100)": 87 }, { "CustomerID": 145, "Gender": "Male", "Age": 25, "Annual Income (k$)": 77, "Spending Score (1-100)": 12 }, { "CustomerID": 146, "Gender": "Male", "Age": 28, "Annual Income (k$)": 77, "Spending Score (1-100)": 97 }, { "CustomerID": 147, "Gender": "Male", "Age": 48, "Annual Income (k$)": 77, "Spending Score (1-100)": 36 }, { "CustomerID": 148, "Gender": "Female", "Age": 32, "Annual Income (k$)": 77, "Spending Score (1-100)": 74 }, { "CustomerID": 149, "Gender": "Female", "Age": 34, "Annual Income (k$)": 78, "Spending Score (1-100)": 22 }, { "CustomerID": 150, "Gender": "Male", "Age": 34, "Annual Income (k$)": 78, "Spending Score (1-100)": 90 }, { "CustomerID": 151, "Gender": "Male", "Age": 43, "Annual Income (k$)": 78, "Spending Score (1-100)": 17 }, { "CustomerID": 152, "Gender": "Male", "Age": 39, "Annual Income (k$)": 78, "Spending Score (1-100)": 88 }, { "CustomerID": 153, "Gender": "Female", "Age": 44, "Annual Income (k$)": 78, "Spending Score (1-100)": 20 }, { "CustomerID": 154, "Gender": "Female", "Age": 38, "Annual Income (k$)": 78, "Spending Score (1-100)": 76 }, { "CustomerID": 155, "Gender": "Female", "Age": 47, "Annual Income (k$)": 78, "Spending Score (1-100)": 16 }, { "CustomerID": 156, "Gender": "Female", "Age": 27, "Annual Income (k$)": 78, "Spending Score (1-100)": 89 }, { "CustomerID": 157, "Gender": "Male", "Age": 37, "Annual Income (k$)": 78, "Spending Score (1-100)": 1 }, { "CustomerID": 158, "Gender": "Female", "Age": 30, "Annual Income (k$)": 78, "Spending Score (1-100)": 78 }, { "CustomerID": 159, "Gender": "Male", "Age": 34, "Annual Income (k$)": 78, "Spending Score (1-100)": 1 }, { "CustomerID": 160, "Gender": "Female", "Age": 30, "Annual Income (k$)": 78, "Spending Score (1-100)": 73 }, { "CustomerID": 161, "Gender": "Female", "Age": 56, "Annual Income (k$)": 79, "Spending Score (1-100)": 35 }, { "CustomerID": 162, "Gender": "Female", "Age": 29, "Annual Income (k$)": 79, "Spending Score (1-100)": 83 }, { "CustomerID": 163, "Gender": "Male", "Age": 19, "Annual Income (k$)": 81, "Spending Score (1-100)": 5 }, { "CustomerID": 164, "Gender": "Female", "Age": 31, "Annual Income (k$)": 81, "Spending Score (1-100)": 93 }, { "CustomerID": 165, "Gender": "Male", "Age": 50, "Annual Income (k$)": 85, "Spending Score (1-100)": 26 }, { "CustomerID": 166, "Gender": "Female", "Age": 36, "Annual Income (k$)": 85, "Spending Score (1-100)": 75 }, { "CustomerID": 167, "Gender": "Male", "Age": 42, "Annual Income (k$)": 86, "Spending Score (1-100)": 20 }, { "CustomerID": 168, "Gender": "Female", "Age": 33, "Annual Income (k$)": 86, "Spending Score (1-100)": 95 }, { "CustomerID": 169, "Gender": "Female", "Age": 36, "Annual Income (k$)": 87, "Spending Score (1-100)": 27 }, { "CustomerID": 170, "Gender": "Male", "Age": 32, "Annual Income (k$)": 87, "Spending Score (1-100)": 63 }, { "CustomerID": 171, "Gender": "Male", "Age": 40, "Annual Income (k$)": 87, "Spending Score (1-100)": 13 }, { "CustomerID": 172, "Gender": "Male", "Age": 28, "Annual Income (k$)": 87, "Spending Score (1-100)": 75 }, { "CustomerID": 173, "Gender": "Male", "Age": 36, "Annual Income (k$)": 87, "Spending Score (1-100)": 10 }, { "CustomerID": 174, "Gender": "Male", "Age": 36, "Annual Income (k$)": 87, "Spending Score (1-100)": 92 }, { "CustomerID": 175, "Gender": "Female", "Age": 52, "Annual Income (k$)": 88, "Spending Score (1-100)": 13 }, { "CustomerID": 176, "Gender": "Female", "Age": 30, "Annual Income (k$)": 88, "Spending Score (1-100)": 86 }, { "CustomerID": 177, "Gender": "Male", "Age": 58, "Annual Income (k$)": 88, "Spending Score (1-100)": 15 }, { "CustomerID": 178, "Gender": "Male", "Age": 27, "Annual Income (k$)": 88, "Spending Score (1-100)": 69 }, { "CustomerID": 179, "Gender": "Male", "Age": 59, "Annual Income (k$)": 93, "Spending Score (1-100)": 14 }, { "CustomerID": 180, "Gender": "Male", "Age": 35, "Annual Income (k$)": 93, "Spending Score (1-100)": 90 }, { "CustomerID": 181, "Gender": "Female", "Age": 37, "Annual Income (k$)": 97, "Spending Score (1-100)": 32 }, { "CustomerID": 182, "Gender": "Female", "Age": 32, "Annual Income (k$)": 97, "Spending Score (1-100)": 86 }, { "CustomerID": 183, "Gender": "Male", "Age": 46, "Annual Income (k$)": 98, "Spending Score (1-100)": 15 }, { "CustomerID": 184, "Gender": "Female", "Age": 29, "Annual Income (k$)": 98, "Spending Score (1-100)": 88 }, { "CustomerID": 185, "Gender": "Female", "Age": 41, "Annual Income (k$)": 99, "Spending Score (1-100)": 39 }, { "CustomerID": 186, "Gender": "Male", "Age": 30, "Annual Income (k$)": 99, "Spending Score (1-100)": 97 }, { "CustomerID": 187, "Gender": "Female", "Age": 54, "Annual Income (k$)": 101, "Spending Score (1-100)": 24 }, { "CustomerID": 188, "Gender": "Male", "Age": 28, "Annual Income (k$)": 101, "Spending Score (1-100)": 68 }, { "CustomerID": 189, "Gender": "Female", "Age": 41, "Annual Income (k$)": 103, "Spending Score (1-100)": 17 }, { "CustomerID": 190, "Gender": "Female", "Age": 36, "Annual Income (k$)": 103, "Spending Score (1-100)": 85 }, { "CustomerID": 191, "Gender": "Female", "Age": 34, "Annual Income (k$)": 103, "Spending Score (1-100)": 23 }, { "CustomerID": 192, "Gender": "Female", "Age": 32, "Annual Income (k$)": 103, "Spending Score (1-100)": 69 }, { "CustomerID": 193, "Gender": "Male", "Age": 33, "Annual Income (k$)": 113, "Spending Score (1-100)": 8 }, { "CustomerID": 194, "Gender": "Female", "Age": 38, "Annual Income (k$)": 113, "Spending Score (1-100)": 91 }, { "CustomerID": 195, "Gender": "Female", "Age": 47, "Annual Income (k$)": 120, "Spending Score (1-100)": 16 }, { "CustomerID": 196, "Gender": "Female", "Age": 35, "Annual Income (k$)": 120, "Spending Score (1-100)": 79 }, { "CustomerID": 197, "Gender": "Female", "Age": 45, "Annual Income (k$)": 126, "Spending Score (1-100)": 28 }, { "CustomerID": 198, "Gender": "Male", "Age": 32, "Annual Income (k$)": 126, "Spending Score (1-100)": 74 }, { "CustomerID": 199, "Gender": "Male", "Age": 32, "Annual Income (k$)": 137, "Spending Score (1-100)": 18 }, { "CustomerID": 200, "Gender": "Male", "Age": 30, "Annual Income (k$)": 137, "Spending Score (1-100)": 83 } ]);
+            
+            let displayedCustomers = [...allCustomers];
+            let clusterProfiles = [];
+            let chartInstances = {};
+            let currentPage = 1;
+            const rowsPerPage = 10;
+            const clusterColors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1'];
+
+            const getAvg = (arr, prop) => arr.reduce((acc, item) => acc + item[prop], 0) / arr.length;
+
+            function initialize() {
+                initTheme();
+                allCustomers.forEach(c => c.cluster = 'N/A');
+                document.getElementById('avg-age').textContent = Math.round(getAvg(allCustomers, 'Age'));
+                document.getElementById('avg-income').textContent = Math.round(getAvg(allCustomers, 'Annual Income (k$)'));
+                document.getElementById('avg-score').textContent = Math.round(getAvg(allCustomers, 'Spending Score (1-100)'));
+                renderOverviewCharts();
+                renderTable();
+            }
+
+            function renderOverviewCharts() {
+                const genderCounts = allCustomers.reduce((acc, c) => {
+                    acc[c.Gender] = (acc[c.Gender] || 0) + 1;
+                    return acc;
+                }, {});
+                
+                const ageBins = { '18-25': 0, '26-35': 0, '36-45': 0, '46-55': 0, '56+': 0 };
+                allCustomers.forEach(c => {
+                    if (c.Age <= 25) ageBins['18-25']++;
+                    else if (c.Age <= 35) ageBins['26-35']++;
+                    else if (c.Age <= 45) ageBins['36-45']++;
+                    else if (c.Age <= 55) ageBins['46-55']++;
+                    else ageBins['56+']++;
+                });
+
+                renderChart('gender-chart', 'doughnut', {
+                    labels: Object.keys(genderCounts),
+                    datasets: [{ data: Object.values(genderCounts), backgroundColor: ['#818cf8', '#f87171'] }]
+                }, { plugins: { legend: { position: 'bottom' } } });
+                
+                renderChart('age-chart', 'bar', {
+                    labels: Object.keys(ageBins),
+                    datasets: [{ label: 'Number of Customers', data: Object.values(ageBins), backgroundColor: '#60a5fa' }]
+                }, { plugins: { legend: { display: false } } });
+            }
+
+            function kMeans(data, k) {
+                let points = data.map(d => ({ x: d['Annual Income (k$)'], y: d['Spending Score (1-100)'] }));
+                let centroids = points.slice(0, k).map(p => ({...p})); 
+                let assignments = [];
+                for (let iter = 0; iter < 100; iter++) {
+                    assignments = points.map(point => {
+                        let bestDist = Infinity;
+                        let bestCluster = 0;
+                        centroids.forEach((centroid, i) => {
+                            const dist = Math.sqrt(Math.pow(point.x - centroid.x, 2) + Math.pow(point.y - centroid.y, 2));
+                            if (dist < bestDist) {
+                                bestDist = dist;
+                                bestCluster = i;
+                            }
+                        });
+                        return bestCluster;
+                    });
+                    const newCentroids = [];
+                    for (let i = 0; i < k; i++) {
+                        const clusterPoints = points.filter((_, j) => assignments[j] === i);
+                        if (clusterPoints.length > 0) {
+                            newCentroids[i] = {
+                                x: clusterPoints.reduce((sum, p) => sum + p.x, 0) / clusterPoints.length,
+                                y: clusterPoints.reduce((sum, p) => sum + p.y, 0) / clusterPoints.length
+                            };
+                        } else {
+                            newCentroids[i] = points[Math.floor(Math.random() * points.length)];
+                        }
+                    }
+                    if (JSON.stringify(centroids) === JSON.stringify(newCentroids)) break;
+                    centroids = newCentroids;
+                }
+                return assignments;
+            }
+            
+            function runAnalysis() {
+                const k = parseInt(document.getElementById('k-clusters').value);
+                const assignments = kMeans(allCustomers, k);
+                allCustomers.forEach((customer, i) => { customer.cluster = assignments[i] + 1; });
+                
+                calculateClusterProfiles(k);
+                renderAnalysisCharts(k);
+                currentPage = 1;
+                renderTable();
+
+                document.getElementById('analysis-placeholder').classList.add('hidden');
+                document.getElementById('analysis-results').classList.remove('hidden');
+                document.getElementById('strategy-placeholder').classList.add('hidden');
+                document.getElementById('strategy-controls').classList.remove('hidden');
+                
+                populateStrategySelector();
+                document.getElementById('strategy-output').classList.add('hidden');
+            }
+
+            function calculateClusterProfiles(k) {
+                clusterProfiles = [];
+                for (let i = 1; i <= k; i++) {
+                    const members = allCustomers.filter(c => c.cluster === i);
+                    if (members.length > 0) {
+                        clusterProfiles.push({
+                            cluster: i,
+                            income: getAvg(members, 'Annual Income (k$)'),
+                            score: getAvg(members, 'Spending Score (1-100)'),
+                            age: getAvg(members, 'Age')
+                        });
+                    }
+                }
+            }
+            
+            function renderAnalysisCharts(k) {
+                const scatterDatasets = clusterProfiles.map(p => ({
+                    label: `Cluster ${p.cluster}`,
+                    data: allCustomers.filter(c => c.cluster === p.cluster).map(c => ({ x: c['Annual Income (k$)'], y: c['Spending Score (1-100)'] })),
+                    backgroundColor: clusterColors[p.cluster - 1]
+                }));
+                renderChart('cluster-chart', 'scatter', { datasets: scatterDatasets }, { plugins: { legend: { position: 'bottom' } } });
+
+                renderChart('profile-chart', 'bar', {
+                    labels: clusterProfiles.map(p => `Cluster ${p.cluster}`),
+                    datasets: [
+                        { label: 'Avg. Income (k$)', data: clusterProfiles.map(p => p.income), backgroundColor: '#3b82f6' },
+                        { label: 'Avg. Score', data: clusterProfiles.map(p => p.score), backgroundColor: '#14b8a6' },
+                        { label: 'Avg. Age', data: clusterProfiles.map(p => p.age), backgroundColor: '#f59e0b' }
+                    ]
+                }, { plugins: { legend: { position: 'bottom' } } });
+            }
+
+            function renderChart(canvasId, type, data, options) {
+                const isDark = document.documentElement.classList.contains('dark');
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const textColor = isDark ? '#e2e8f0' : '#334155';
+
+                const defaultOptions = { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: textColor } }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        y: {
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        }
+                    }
+                };
+                
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+                
+                chartInstances[canvasId] = new Chart(ctx, { type, data, options: { ...defaultOptions, ...options } });
+            }
+            
+            function rerenderAllCharts() {
+                if (chartInstances['gender-chart']) renderOverviewCharts();
+                if (chartInstances['cluster-chart']) {
+                     const k = parseInt(document.getElementById('k-clusters').value);
+                     renderAnalysisCharts(k);
+                }
+            }
+
+            function populateStrategySelector() {
+                const select = document.getElementById('cluster-select');
+                select.innerHTML = '';
+                clusterProfiles.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.cluster;
+                    option.innerText = `Segment (Cluster) ${p.cluster}`;
+                    select.appendChild(option);
+                });
+            }
+            
+            const customStrategies = {
+                'PRIME': {
+                    strategy: `
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Persona: Prime Spenders</h3>
+                        <p class="text-slate-700 dark:text-slate-300">High-income individuals with a high spending score. They are the ideal target customer.</p>
+                        <h4 class="font-semibold text-slate-800 dark:text-slate-200 mt-4 mb-2">Marketing Strategy:</h4>
+                        <ul class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
+                            <li><b>Loyalty Programs:</b> Offer exclusive rewards, early access to sales, and premium membership tiers.</li>
+                            <li><b>Personalized Offers:</b> Use purchase history to send targeted promotions for luxury brands and high-value products.</li>
+                            <li><b>Email Marketing:</b> Showcase new arrivals from premium brands and highlight exclusive in-store events.</li>
+                            <li><b>Channels:</b> Premium ad placements, collaborations with luxury lifestyle influencers, direct mail catalogs.</li>
+                        </ul>`
+                },
+                'CAUTIOUS': {
+                    strategy: `
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Persona: Affluent but Cautious</h3>
+                        <p class="text-slate-700 dark:text-slate-300">High-income earners who are selective and do not spend freely. They value quality and seek justification for their purchases.</p>
+                        <h4 class="font-semibold text-slate-800 dark:text-slate-200 mt-4 mb-2">Marketing Strategy:</h4>
+                        <ul class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
+                            <li><b>Value Proposition:</b> Emphasize quality, durability, and investment value of products.</li>
+                            <li><b>Informational Content:</b> Provide detailed product specifications, customer reviews, and comparisons.</li>
+                            <li><b>Targeted Promotions:</b> Offer strategic discounts on specific high-margin items rather than store-wide sales.</li>
+                            <li><b>Channels:</b> Financial news websites, sophisticated magazines, targeted social media ads focusing on product features.</li>
+                        </ul>`
+                },
+                'ENTHUSIAST': {
+                    strategy: `
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Persona: Young Enthusiasts</h3>
+                        <p class="text-slate-700 dark:text-slate-300">Typically younger customers with lower incomes but a very high propensity to spend, often on trendy items.</p>
+                        <h4 class="font-semibold text-slate-800 dark:text-slate-200 mt-4 mb-2">Marketing Strategy:</h4>
+                        <ul class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
+                            <li><b>Social Media Campaigns:</b> Focus on platforms like Instagram and TikTok. Run contests and user-generated content campaigns.</li>
+                            <li><b>Trend-Based Marketing:</b> Heavily promote the latest fashion and electronic gadgets. Use fear-of-missing-out (FOMO) tactics.</li>
+                            <li><b>Student Discounts & BNPL:</b> Offer student discounts and Buy Now, Pay Later options to overcome income barriers.</li>
+                            <li><b>Channels:</b> Social media influencers, targeted ads on youth-focused platforms, in-mall events and pop-ups.</li>
+                        </ul>`
+                },
+                'BUDGET': {
+                    strategy: `
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Persona: Budget-Conscious Savers</h3>
+                        <p class="text-slate-700 dark:text-slate-300">Customers with low income and low spending scores. They are highly price-sensitive and look for the best deals.</p>
+                        <h4 class="font-semibold text-slate-800 dark:text-slate-200 mt-4 mb-2">Marketing Strategy:</h4>
+                        <ul class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
+                            <li><b>Sales and Promotions:</b> Focus on clearance events, "buy one, get one" offers, and seasonal sales.</li>
+                            <li><b>Coupon Distribution:</b> Use digital and physical coupons to drive traffic and encourage purchases.</li>
+                            <li><b>Value Brands:</b> Highlight affordable product lines and basic necessities.</li>
+                            <li><b>Channels:</b> Local flyers, community bulletin boards, SMS and email alerts for sales events.</li>
+                        </ul>`
+                },
+                'STANDARD': {
+                    strategy: `
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Persona: Standard Shoppers</h3>
+                        <p class="text-slate-700 dark:text-slate-300">This large group represents the average customer with moderate income and spending habits.</p>
+                        <h4 class="font-semibold text-slate-800 dark:text-slate-200 mt-4 mb-2">Marketing Strategy:</h4>
+                        <ul class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
+                            <li><b>General Marketing:</b> Broad-based advertising showcasing a variety of products and mid-range brands.</li>
+                            <li><b>Seasonal Campaigns:</b> Engage them with marketing centered around holidays and seasonal events (e.g., Back-to-School, Christmas).</li>
+                            <li><b>Email Newsletters:</b> Keep them informed about what's new in the mall, general promotions, and upcoming events.</li>
+                            <li><b>Channels:</b> General social media, local radio, in-mall advertising, and email newsletters.</li>
+                        </ul>`
+                }
+            };
+
+            function getClusterProfileType(profile) {
+                const income = profile.income;
+                const score = profile.score;
+
+                if (income > 80 && score > 70) return 'PRIME';
+                if (income > 80 && score < 40) return 'CAUTIOUS';
+                if (income < 40 && score > 60) return 'ENTHUSIAST';
+                if (income < 40 && score < 40) return 'BUDGET';
+                return 'STANDARD';
+            }
+            
+            function showCustomStrategy() {
+                const clusterId = parseInt(document.getElementById('cluster-select').value);
+                const profile = clusterProfiles.find(p => p.cluster === clusterId);
+                if (!profile) return;
+
+                const strategyOutput = document.getElementById('strategy-output');
+                strategyOutput.classList.remove('hidden');
+                strategyOutput.innerHTML = `<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400"><span>Analyzing segment...</span></div>`;
+
+                setTimeout(() => {
+                    const profileType = getClusterProfileType(profile);
+                    const customContent = customStrategies[profileType];
+                    strategyOutput.innerHTML = customContent.strategy;
+                }, 250);
+            }
+
+            function showDataSummary() {
+                const summaryOutput = document.getElementById('summary-output');
+                summaryOutput.classList.remove('hidden');
+                summaryOutput.innerHTML = `<div class="flex items-center gap-2 text-slate-600 dark:text-slate-400"><span>Generating summary...</span></div>`;
+
+                const customSummaryHTML = `
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Data Summary</h3>
+                    <p class="text-slate-700 dark:text-slate-300">
+                        This dataset comprises 200 customers from a mall, with key demographic and financial attributes. The data includes customer ID, gender, age, annual income (in thousands of dollars), and a "spending score" ranging from 1 to 100.
+                    </p>
+                    <h4 class="font-semibold text-slate-800 dark:text-slate-200 mt-4 mb-2">Key Observations:</h4>
+                    <ul class="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
+                        <li><b>Demographics:</b> Ages range from 18 to 70, with a balanced distribution across age groups. There is a slightly higher representation of female customers (112) compared to male customers (88).</li>
+                        <li><b>Income & Spending:</b> Annual incomes vary widely from $15k to $137k. The spending score, assigned by the mall based on customer behavior, shows no direct linear correlation with income, indicating that customers with lower incomes can still be high spenders and vice-versa.</li>
+                        <li><b>Segmentation Potential:</b> The data is well-suited for customer segmentation, revealing distinct groups such as high-income/low-spenders, low-income/high-spenders, and those with average income and spending habits.</li>
+                    </ul>
+                `;
+
+                setTimeout(() => { 
+                    summaryOutput.innerHTML = customSummaryHTML;
+                }, 250);
+            }
+
+            function renderTable() {
+                const tableBody = document.getElementById('customer-table-body');
+                tableBody.innerHTML = '';
+                const paginated = displayedCustomers.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+                paginated.forEach(c => {
+                    const clusterText = c.cluster !== 'N/A' ? `<span class="font-bold" style="color: ${clusterColors[c.cluster-1] || '#64748b'}">${c.cluster}</span>` : 'N/A';
+                    tableBody.innerHTML += `<tr class="bg-white dark:bg-slate-800 border-b dark:border-slate-700"><td class="px-6 py-4">${c.CustomerID}</td><td class="px-6 py-4">${c.Gender}</td><td class="px-6 py-4">${c.Age}</td><td class="px-6 py-4">${c['Annual Income (k$)']}</td><td class="px-6 py-4">${c['Spending Score (1-100)']}</td><td class="px-6 py-4 text-center">${clusterText}</td></tr>`;
+                });
+                renderPagination();
+            }
+
+            function renderPagination() {
+                const container = document.getElementById('pagination');
+                const pageCount = Math.ceil(displayedCustomers.length / rowsPerPage);
+                container.innerHTML = `<span class="text-sm text-slate-700 dark:text-slate-400">Page ${currentPage} of ${pageCount}</span>
+                    <div>
+                        <button id="prev-btn" class="px-4 py-2 mx-1 rounded-md text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 disabled:opacity-50">Previous</button>
+                        <button id="next-btn" class="px-4 py-2 mx-1 rounded-md text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 border border-teal-600 disabled:opacity-50">Next</button>
+                    </div>`;
+
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
+
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === pageCount;
+
+                prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+                nextBtn.onclick = () => { if (currentPage < pageCount) { currentPage++; renderTable(); } };
+            }
+
+            function initTheme() {
+                const themeToggleBtn = document.getElementById('theme-toggle');
+                const lightIcon = document.getElementById('theme-icon-light');
+                const darkIcon = document.getElementById('theme-icon-dark');
+
+                const applyTheme = (theme) => {
+                    if (theme === 'dark') {
+                        document.documentElement.classList.add('dark');
+                        lightIcon.classList.add('hidden');
+                        darkIcon.classList.remove('hidden');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        lightIcon.classList.remove('hidden');
+                        darkIcon.classList.add('hidden');
+                    }
+                    rerenderAllCharts();
+                };
+
+                const userTheme = localStorage.getItem('theme');
+                const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                const currentTheme = userTheme || systemTheme;
+                
+                if (currentTheme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    lightIcon.classList.add('hidden');
+                    darkIcon.classList.remove('hidden');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    lightIcon.classList.remove('hidden');
+                    darkIcon.classList.add('hidden');
+                }
+
+                themeToggleBtn.addEventListener('click', () => {
+                    const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+                    localStorage.setItem('theme', newTheme);
+                    applyTheme(newTheme);
+                });
+            }
+
+            document.getElementById('run-cluster-btn').addEventListener('click', runAnalysis);
+            document.getElementById('generate-strategy-btn').addEventListener('click', showCustomStrategy);
+            document.getElementById('generate-summary-btn').addEventListener('click', showDataSummary);
+            
+            initialize();
+        });
+    </script>
+</body>
+</html>

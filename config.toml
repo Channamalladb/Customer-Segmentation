@@ -1,0 +1,15 @@
+[server]
+headless = true
+enableCORS = false
+
+[theme]
+base = "light"
+primaryColor = "#10B981"  # Teal
+backgroundColor = "#F8FAFC"  # Light slate
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0F172A"  # Slate-900
+font = "sans serif"
+
+[layout]
+wide = true
+initial_sidebar_state = "expanded"
